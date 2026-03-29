@@ -718,50 +718,67 @@ function renderShelterList(){
   if(!shelters.length){c.innerHTML='<div class="empty"><div style="font-size:36px;margin-bottom:10px">🏘️</div><p>אין ממ"דים רשומים בקרבת מקום</p></div>';return;}
 
   const isAlert=!!activeAlert;
-  const openCount=shelters.filter(s=>s.is_active).length;
-  document.getElementById('cnt').textContent=isAlert?`${openCount} פתוחים`:shelters.length;
+  // During alert: show only open shelters. No alert: show all.
+  const displayed=isAlert?shelters.filter(s=>s.is_active):shelters;
+  document.getElementById('cnt').textContent=displayed.length;
 
-  c.innerHTML=shelters.map((s,i)=>{
+  if(!displayed.length){
+    c.innerHTML=isAlert
+      ?'<div class="empty"><div style="font-size:36px;margin-bottom:10px">😔</div><p>אין ממ"דים פתוחים בקרבת מקום כרגע</p></div>'
+      :'<div class="empty"><div style="font-size:36px;margin-bottom:10px">🏘️</div><p>אין ממ"דים רשומים באזור</p></div>';
+    return;
+  }
+
+  c.innerHTML=displayed.map((s,i)=>{
     const isOpen=!!s.is_active;
-    const isFirst=i===0&&isOpen;
 
-    // Status badge: green=open, yellow=closed
-    const statusBadge=isOpen
-      ?'<span style="background:rgba(34,197,94,.15);color:#34d399;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">פתוח עכשיו</span>'
-      :(s.status==='always_open'
-        ?'<span style="background:rgba(253,230,138,.15);color:#d4a843;padding:2px 8px;border-radius:8px;font-size:11px;">נפתח באזעקה</span>'
-        :'<span style="background:rgba(253,230,138,.1);color:#d4a843;padding:2px 8px;border-radius:8px;font-size:11px;">רשום</span>');
+    if(isAlert&&isOpen){
+      // During alert — open shelter: show name, phone, notes, call button
+      return `<div class="sc ${i===0?'near':''}">
+        <div class="sc-top">
+          <div class="sc-host">
+            <div class="sc-av" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;">${(s.name||'?')[0]}</div>
+            <div style="min-width:0">
+              <div class="sc-name">${esc(s.name)} <span style="background:rgba(34,197,94,.15);color:#34d399;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">פתוח</span></div>
+              <div class="sc-addr">${esc(s.address)}, ${esc(s.city)}</div>
+            </div>
+          </div>
+          <div class="sc-dist">
+            <div class="dval">${s.distance<1000?Math.round(s.distance):(s.distance/1000).toFixed(1)}</div>
+            <div class="dunit">${s.distance<1000?'מטר':'ק"מ'}</div>
+            <div class="dwalk">~${s.walkMinutes} דק׳</div>
+          </div>
+        </div>
+        <div class="sc-dets"><span>🏢 קומה ${s.floor}</span><span>👥 עד ${s.capacity}</span>${s.accessibility?'<span>♿ נגיש</span>':''}</div>
+        ${s.notes?`<div class="sc-note"><span>💡</span>${esc(s.notes)}</div>`:''}
+        <div class="btns">
+          <button class="btn btn-g" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking','_blank')">🗺️ נווט</button>
+          <button class="btn btn-b" onclick="location.href='tel:${esc(s.phone)}'">📞 חייג</button>
+        </div>
+      </div>`;
+    }
 
-    const avStyle=isOpen
-      ?'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;'
-      :'background:#44400a;color:#fde68a;';
+    // No alert — show registered shelter (no name, no phone)
+    const badge=s.status==='always_open'
+      ?'<span style="background:rgba(253,230,138,.15);color:#d4a843;padding:2px 8px;border-radius:8px;font-size:11px;">נפתח באזעקה</span>'
+      :'<span style="background:rgba(253,230,138,.1);color:#d4a843;padding:2px 8px;border-radius:8px;font-size:11px;">רשום</span>';
 
-    // Show name+phone only during alert when shelter is open. Otherwise just address.
-    const showDetails=isAlert&&isOpen;
-    const displayName=showDetails?esc(s.name):'ממ"ד';
-    const displayAddr=`${esc(s.address)}, ${esc(s.city)}`;
-
-    return `<div class="sc ${isFirst?'near':''}" style="${!isOpen&&isAlert?'opacity:0.5;':''}">
+    return `<div class="sc">
       <div class="sc-top">
         <div class="sc-host">
-          <div class="sc-av" style="${avStyle}">${showDetails?(s.name||'?')[0]:'🛡️'}</div>
+          <div class="sc-av" style="background:#44400a;color:#fde68a;">🛡️</div>
           <div style="min-width:0">
-            <div class="sc-name">${displayName} ${statusBadge}</div>
-            <div class="sc-addr">${displayAddr}</div>
+            <div class="sc-name">ממ"ד ${badge}</div>
+            <div class="sc-addr">${esc(s.address)}, ${esc(s.city)}</div>
           </div>
         </div>
         <div class="sc-dist">
-          <div class="dval" style="${isOpen?'':'color:#d4a843;'}">${s.distance<1000?Math.round(s.distance):(s.distance/1000).toFixed(1)}</div>
+          <div class="dval" style="color:#d4a843;">${s.distance<1000?Math.round(s.distance):(s.distance/1000).toFixed(1)}</div>
           <div class="dunit">${s.distance<1000?'מטר':'ק"מ'}</div>
           <div class="dwalk">~${s.walkMinutes} דק׳</div>
         </div>
       </div>
       <div class="sc-dets"><span>🏢 קומה ${s.floor}</span><span>👥 עד ${s.capacity}</span>${s.accessibility?'<span>♿ נגיש</span>':''}</div>
-      ${showDetails&&s.notes?`<div class="sc-note"><span>💡</span>${esc(s.notes)}</div>`:''}
-      <div class="btns">
-        <button class="btn ${isOpen?'btn-g':'btn-s'}" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking','_blank')">🗺️ נווט</button>
-        ${showDetails?`<button class="btn btn-b" onclick="location.href='tel:${esc(s.phone)}'">📞 חייג</button>`:''}
-      </div>
     </div>`;
   }).join('');
 }
@@ -770,20 +787,14 @@ function renderMarkers(){
   if(!_map)return;
   _markers.forEach(m=>_map.removeLayer(m));_markers=[];
   const bounds=L.latLngBounds(uLat?[[uLat,uLng]]:[]);
-  for(const s of shelters){
-    if(!s.lat||!s.lng)continue;
-    const isOpen=!!s.is_active;
-    // Green = open, light yellow = closed/unknown
-    const fillColor=isOpen?'#22c55e':'#fde68a';
-    const strokeColor=isOpen?'#16a34a':'#d4a843';
+  // Only show OPEN shelters on map — closed ones don't appear
+  const openShelters=shelters.filter(s=>s.is_active&&s.lat&&s.lng);
+  for(const s of openShelters){
     const m=L.circleMarker([s.lat,s.lng],{
-      radius:isOpen?11:7,
-      fillColor, color:strokeColor, weight:2,
-      fillOpacity:isOpen?.8:.5
+      radius:11,fillColor:'#22c55e',color:'#16a34a',weight:2,fillOpacity:.8
     }).addTo(_map);
-    // Popup: only address + floor + capacity. NO name, NO phone. Privacy first.
-    const statusText=isOpen?'<span style="color:#22c55e;font-weight:600;">פתוח עכשיו</span>':'<span style="color:#d4a843;">ממ"ד רשום</span>';
-    m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif">${statusText}<br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
+    // Popup: address + floor + capacity only. No name/phone on map.
+    m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif"><span style="color:#22c55e;font-weight:600;">ממ"ד פתוח</span><br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
     _markers.push(m);bounds.extend([s.lat,s.lng]);
   }
   if(bounds.isValid())_map.fitBounds(bounds,{padding:[30,30],maxZoom:16});
@@ -791,23 +802,9 @@ function renderMarkers(){
 
 let _calmMarkers=[];
 async function loadCalmShelters(){
-  const lat=uLat||32.256,lng=uLng||34.918;
-  try{
-    const d=await(await fetch(`/api/shelters/nearby?lat=${lat}&lng=${lng}&radius=3000`)).json();
-    if(!_calmMap)return;
-    _calmMarkers.forEach(m=>_calmMap.removeLayer(m));_calmMarkers=[];
-    for(const s of(d.shelters||[])){
-      if(!s.lat||!s.lng)continue;
-      const isOpen=!!s.is_active;
-      const fillColor=isOpen?'#22c55e':'#fde68a';
-      const strokeColor=isOpen?'#16a34a':'#d4a843';
-      const m=L.circleMarker([s.lat,s.lng],{
-        radius:isOpen?8:5,fillColor,color:strokeColor,weight:1.5,fillOpacity:isOpen?.6:.4
-      }).addTo(_calmMap);
-      m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif">${isOpen?'<span style="color:#22c55e;">פתוח</span>':'ממ"ד רשום'}<br>${esc(s.address)}<br><small>קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
-      _calmMarkers.push(m);
-    }
-  }catch{}
+  // Calm map: don't show any markers (no shelters visible when no alert)
+  if(!_calmMap)return;
+  _calmMarkers.forEach(m=>_calmMap.removeLayer(m));_calmMarkers=[];
 }
 
 async function loadCalmInfo(){

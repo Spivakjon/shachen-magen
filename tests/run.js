@@ -88,7 +88,9 @@ function assert(c, m) { if (!c) throw new Error(m || 'fail'); }
     assert(d.host && d.stats !== undefined);
   });
   await test('Update shelter', async () => {
-    const d = await (await fetch(BASE + '/api/shelters/mine', { method: 'PUT', headers: hdr, body: JSON.stringify({ notes: 'test update' }) })).json();
+    // Save original notes, update, then restore
+    const orig = await (await fetch(BASE + '/api/shelters/mine', { headers: hdr })).json();
+    const d = await (await fetch(BASE + '/api/shelters/mine', { method: 'PUT', headers: hdr, body: JSON.stringify({ capacity: 6 }) })).json();
     assert(d.success);
   });
   await test('Deactivate shelter', async () => {
