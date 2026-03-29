@@ -1,1 +1,1 @@
-export { logger } from 'shared-dashboard/core/logger';
+export { logger } from '../lib/shared/core/logger.js';

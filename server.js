@@ -10,10 +10,10 @@ import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { createRequire } from 'module';
 import { config } from './core/config.js';
 import { logger } from './core/logger.js';
-import { registerSharedRoutes, createDatabaseRoutes } from 'shared-dashboard';
+import { registerSharedRoutes } from './lib/shared/sharedAdminRoutes.js';
+import { createDatabaseRoutes } from './lib/shared/databaseRoutes.js';
 import { dashboardProviders } from './services/admin/adminRoutes.js';
 import { registerAuthRoutes } from './services/auth/authRoutes.js';
 import { registerShelterRoutes } from './services/shelters/shelterRoutes.js';
@@ -71,11 +71,9 @@ app.register(fastifyStatic, {
   prefix: '/',
 });
 
-// Serve shared-dashboard static files
-const require = createRequire(import.meta.url);
-const sharedDashboardPath = join(dirname(require.resolve('shared-dashboard/package.json')), 'public');
+// Serve shared-dashboard static files (bundled locally)
 app.register(fastifyStatic, {
-  root: sharedDashboardPath,
+  root: join(__dirname, 'lib', 'shared', 'public'),
   prefix: '/shared/',
   decorateReply: false,
 });

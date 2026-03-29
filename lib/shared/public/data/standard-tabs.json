@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "tabs": [
+    {
+      "id": "email-inbox",
+      "icon": "✉",
+      "label": "דואר",
+      "title": "תיבת דואר",
+      "enabled": true,
+      "source": "module",
+      "modulePath": "/shared/js/pages/email-inbox.js"
+    },
+    {
+      "id": "bureaucracy",
+      "icon": "✓",
+      "label": "משימות",
+      "title": "ניהול משימות",
+      "enabled": true,
+      "source": "module",
+      "modulePath": "/shared/js/pages/bureaucracy-tab.js"
+    },
+    {
+      "id": "database",
+      "icon": "≡",
+      "label": "דאטה-בייס",
+      "title": "מבנה דאטה-בייס",
+      "enabled": true,
+      "source": "module",
+      "modulePath": "/shared/js/pages/database.js"
+    }
+  ],
+  "alwaysInject": [
+    "dashboard-categories",
+    "dashboard-settings"
+  ]
+}

@@ -1,0 +1,6 @@
+/* Theme: Cyan (default for Mond-Muni, Spivak OS) */
+:root {
+  --accent:      #00d4ff;
+  --accent-dim:  rgba(0, 212, 255, 0.12);
+  --accent-glow: rgba(0, 212, 255, 0.25);
+}
