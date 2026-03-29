@@ -1,0 +1,22 @@
+{
+  "name": "magen-shachen",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "npx nodemon server.js"
+  },
+  "dependencies": {
+    "@fastify/multipart": "^8.3.1",
+    "@fastify/static": "^7.0.4",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^16.0.0",
+    "fastify": "^4.28.0",
+    "jsonwebtoken": "^9.0.3",
+    "shared-dashboard": "file:../shared-dashboard",
+    "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

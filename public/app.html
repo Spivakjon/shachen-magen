@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>שכן מגן</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#0f1117;--card:#1a1d27;--layer:#22253a;--border:#2d3048;--text:#e8e8ec;--muted:#9ca3af;--green:#22c55e;--blue:#3b82f6;--red:#dc2626;--yellow:#fbbf24;}
+    html,body{height:100%;overflow:hidden;}
+    body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);direction:rtl;}
+
+    .shell{display:flex;flex-direction:column;height:100vh;height:100dvh;}
+
+    /* Header */
+    .header{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0;z-index:50;}
+    .logo{display:flex;align-items:center;gap:8px;}
+    .logo b{font-size:17px;}
+    .logo-i{width:30px;height:30px;border-radius:8px;overflow:hidden;flex-shrink:0;}
+    .logo-i img{width:100%;height:100%;}
+    .hdr-right{display:flex;align-items:center;gap:8px;}
+    .pill{padding:4px 12px;border-radius:14px;font-size:12px;font-weight:600;background:rgba(34,197,94,.15);color:#34d399;}
+    .pill.alert{background:rgba(220,38,38,.15);color:#f87171;}
+    .pill.host{background:rgba(59,130,246,.15);color:#60a5fa;}
+
+    /* Alert banner */
+    .abanner{background:linear-gradient(135deg,#dc2626,#991b1b);padding:10px 16px;display:flex;align-items:center;gap:10px;flex-shrink:0;animation:pulse 2s infinite;}
+    .abanner.off{display:none;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.85}}
+    .aicon{width:30px;height:30px;background:rgba(255,255,255,.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .atxt{flex:1;min-width:0;}
+    .atitle{font-weight:700;font-size:13px;color:#fff;}
+    .asub{font-size:11px;color:rgba(255,255,255,.8);}
+    .atimer{background:rgba(255,255,255,.2);padding:3px 8px;border-radius:6px;font-size:16px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums;flex-shrink:0;}
+
+    .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+
+    /* Bottom nav */
+    .bnav{display:flex;justify-content:space-around;padding:8px 0 max(6px,env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--border);flex-shrink:0;}
+    .ni{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--muted);padding:4px 16px;cursor:pointer;position:relative;}
+    .ni.on{color:#34d399;}
+    .ni.on::after{content:'';position:absolute;bottom:-2px;width:20px;height:3px;border-radius:2px;background:#34d399;}
+
+    /* Leaflet dark */
+    .leaflet-container{background:#1e2130!important;}
+    .leaflet-tile{filter:brightness(0.7) invert(1) contrast(1.1) hue-rotate(200deg) saturate(0.3);}
+    .leaflet-control-zoom a{background:var(--card)!important;color:var(--text)!important;border-color:var(--border)!important;}
+    .leaflet-popup-content-wrapper{background:var(--card)!important;color:var(--text)!important;border-radius:12px!important;box-shadow:0 4px 20px rgba(0,0,0,.5)!important;}
+    .leaflet-popup-tip{background:var(--card)!important;}
+    .leaflet-popup-content{font-family:'Heebo',sans-serif!important;font-size:13px!important;}
+    .leaflet-popup-content a{color:#60a5fa!important;}
+
+    /* ===== SCREENS ===== */
+
+    /* Ask screen (no GPS) */
+    .ask-screen{padding:40px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;}
+    .ask-icon{font-size:56px;margin-bottom:16px;}
+    .ask-screen h2{font-size:22px;margin-bottom:8px;}
+    .ask-screen p{color:var(--muted);font-size:14px;margin-bottom:28px;line-height:1.5;}
+    .ask-btns{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px;}
+    .ask-btn{padding:18px;border:none;border-radius:14px;font-family:'Heebo',sans-serif;font-size:16px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;}
+    .ask-btn:active{transform:scale(.97);}
+    .ask-btn.home{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;}
+    .ask-btn.seek{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
+
+    /* Login */
+    .login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:24px;}
+    .login-card{background:var(--card);border-radius:20px;padding:28px;border:1px solid var(--border);width:100%;max-width:380px;}
+    .login-card h2{font-size:22px;text-align:center;margin-bottom:6px;}
+    .login-card .sub{color:var(--muted);text-align:center;font-size:14px;margin-bottom:20px;}
+    .fg{margin-bottom:14px;}
+    .fg label{display:block;font-size:13px;font-weight:500;margin-bottom:4px;color:var(--text);}
+    .fg input,.fg select,.fg textarea{width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Heebo',sans-serif;font-size:14px;}
+    .fg input:focus,.fg textarea:focus{outline:none;border-color:var(--green);}
+    .fg textarea{resize:vertical;min-height:70px;}
+    .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+    .fg-check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;}
+    .fg-check input{width:auto;}
+    .btn-full{width:100%;padding:14px;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+    .btn-full:active{transform:scale(.97);}
+    .btn-green{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
+    .btn-blue{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;}
+    .err-msg{color:#f87171;font-size:13px;margin-top:10px;text-align:center;}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px;text-align:center;}
+
+    /* Calm home */
+    .calm{padding:20px 16px;text-align:center;}
+    .calm-i{width:64px;height:64px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(59,130,246,.15));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:16px auto 14px;}
+    .calm h2{font-size:22px;margin-bottom:6px;}
+    .calm p{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:16px;}
+    .sbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);padding:8px 16px;border-radius:12px;font-size:14px;color:#34d399;margin-bottom:20px;}
+    .icard{background:var(--layer);border-radius:14px;padding:14px;text-align:right;}
+    .irow{display:flex;align-items:center;gap:10px;padding:6px 0;}
+    .iico{width:28px;height:28px;background:var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+    .itxt{font-size:13px;color:var(--muted);}
+    .itxt strong{color:var(--text);}
+
+    /* Map */
+    .map-wrap{width:100%;background:#1e2130;}
+    #smap{width:100%;height:100%;}
+
+    /* Shelter list */
+    .slist-header{padding:14px 16px 8px;display:flex;align-items:center;justify-content:space-between;}
+    .slist-header h3{font-size:16px;font-weight:700;}
+    .cnt{background:rgba(34,197,94,.15);color:#34d399;padding:3px 10px;border-radius:10px;font-size:12px;font-weight:600;}
+    .sc{margin:0 12px 10px;background:var(--layer);border-radius:14px;padding:14px;border:1px solid var(--border);}
+    .sc.near{border-color:rgba(34,197,94,.4);background:linear-gradient(135deg,var(--layer),rgba(34,197,94,.05));}
+    .sc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px;}
+    .sc-host{display:flex;align-items:center;gap:10px;min-width:0;flex:1;}
+    .sc-av{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
+    .sc-name{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .sc-addr{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .sc-dist{text-align:left;flex-shrink:0;}
+    .dval{font-size:20px;font-weight:700;color:#34d399;}
+    .dunit{font-size:11px;color:var(--muted);}
+    .dwalk{font-size:10px;color:var(--muted);}
+    .sc-dets{display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);}
+    .sc-dets span{display:flex;align-items:center;gap:4px;}
+    .sc-note{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--yellow);margin-bottom:10px;display:flex;align-items:flex-start;gap:6px;line-height:1.4;}
+    .btns{display:flex;gap:8px;}
+    .btn{flex:1;padding:11px 8px;border:none;border-radius:10px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;}
+    .btn:active{transform:scale(.97);}
+    .btn-g{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;}
+    .btn-b{background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;}
+    .btn-s{background:var(--border);color:var(--text);}
+    .btn-r{background:linear-gradient(135deg,#dc2626,#991b1b);color:#fff;}
+
+    /* Host mode */
+    .host-card{margin:16px;background:var(--layer);border-radius:16px;padding:18px;border:1px solid var(--border);}
+    .host-top{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+    .host-icon{width:50px;height:50px;background:linear-gradient(135deg,rgba(34,197,94,.2),rgba(34,197,94,.05));border:2px solid rgba(34,197,94,.3);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;}
+    .host-info h3{font-size:17px;font-weight:700;}
+    .host-info p{font-size:13px;color:var(--muted);margin-top:2px;}
+    .host-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+    .host-stat{background:var(--bg);border-radius:10px;padding:10px;text-align:center;}
+    .host-stat .v{font-size:20px;font-weight:700;}
+    .host-stat .l{font-size:11px;color:var(--muted);margin-top:2px;}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;background:var(--bg);border-radius:12px;padding:14px;}
+    .toggle-row .tl{font-size:14px;font-weight:600;}
+    .toggle-row .td{font-size:11px;color:var(--muted);margin-top:1px;}
+    .tsw{width:50px;height:26px;background:#3a3d4a;border-radius:13px;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;}
+    .tsw.on{background:var(--green);}
+    .tsw .tk{width:20px;height:20px;background:#fff;border-radius:50%;position:absolute;top:3px;right:26px;transition:right .3s;box-shadow:0 2px 4px rgba(0,0,0,.2);}
+    .tsw.on .tk{right:4px;}
+
+    /* Host alert action */
+    .host-alert{background:linear-gradient(135deg,#dc2626,#991b1b);border-radius:16px;padding:18px;margin:16px;text-align:center;}
+    .host-alert h3{color:#fff;font-size:18px;margin-bottom:4px;}
+    .host-alert p{color:rgba(255,255,255,.7);font-size:13px;margin-bottom:14px;}
+    .host-alert .ha-btns{display:flex;gap:8px;}
+    .ha-open{flex:1;padding:14px;background:#fff;color:#dc2626;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;}
+    .ha-skip{padding:14px 18px;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:12px;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;cursor:pointer;}
+
+    /* Active shelter banner */
+    .active-banner{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:16px;margin:0 16px 16px;text-align:center;}
+    .active-banner .ab-icon{font-size:36px;margin-bottom:8px;}
+    .active-banner h4{color:#34d399;font-size:16px;margin-bottom:4px;}
+    .active-banner p{color:var(--muted);font-size:13px;}
+    .ab-stats{display:flex;gap:10px;justify-content:center;margin-top:12px;}
+    .ab-stat{background:var(--bg);padding:8px 16px;border-radius:10px;text-align:center;}
+    .ab-stat .v{font-size:20px;font-weight:700;}
+    .ab-stat .l{font-size:11px;color:var(--muted);}
+
+    .settings-link{margin:0 16px 16px;text-align:center;}
+    .settings-link a{color:var(--muted);font-size:13px;text-decoration:none;}
+
+    .empty{text-align:center;padding:32px 16px;color:var(--muted);}
+    .hidden{display:none!important;}
+
+    @media(min-width:520px){
+      body{display:flex;justify-content:center;background:#080810;}
+      .shell{max-width:430px;width:100%;box-shadow:0 0 40px rgba(0,0,0,.4);background:var(--bg);}
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <!-- Alert banner -->
+  <div class="abanner off" id="abanner">
+    <div class="aicon">🚨</div>
+    <div class="atxt"><div class="atitle" id="atitle">אזעקה</div><div class="asub" id="asub"></div></div>
+    <div class="atimer" id="atimer">--</div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo"><div class="logo-i"><img src="/icons/logo.svg" alt=""></div><b>שכן מגן</b></div>
+    <div class="hdr-right">
+      <div class="pill" id="pill">תל מונד</div>
+    </div>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="content" id="content">
+
+    <!-- LOGIN -->
+    <div id="v-login" class="hidden">
+      <div class="login-wrap">
+        <div class="login-card">
+          <div style="text-align:center;font-size:40px;margin-bottom:12px;"><img src="/icons/logo.svg" alt="" style="width:64px;height:64px;"></div>
+          <h2>שכן מגן</h2>
+          <p class="sub">הירשם כדי לארח או למצוא ממ"ד</p>
+
+          <div id="step1">
+            <div class="fg"><label>מספר טלפון</label><input type="tel" id="f-phone" placeholder="054-1234567" dir="ltr" style="text-align:right;"></div>
+            <button class="btn-full btn-green" onclick="doSendOTP()">שלח קוד אימות</button>
+          </div>
+
+          <div id="step2" class="hidden">
+            <div class="fg"><label>קוד אימות</label><input type="text" id="f-code" placeholder="123456" maxlength="6" dir="ltr" style="text-align:center;font-size:22px;letter-spacing:6px;"></div>
+            <button class="btn-full btn-green" onclick="doVerify()">אמת קוד</button>
+            <p class="hint" id="otp-hint"></p>
+          </div>
+
+          <div id="step3" class="hidden">
+            <div style="text-align:center;margin-bottom:16px;"><span style="color:#34d399;font-weight:600;">הטלפון אומת!</span><br><span style="color:var(--muted);font-size:13px;">מלא את פרטי הממ"ד שלך</span></div>
+            <div class="fg"><label>שם מלא *</label><input type="text" id="f-name" placeholder="ישראל ישראלי"></div>
+            <div class="fg"><label>כתובת הממ"ד *</label><input type="text" id="f-addr" placeholder="הזית 14, תל מונד"></div>
+            <div class="fg-row">
+              <div class="fg"><label>קומה</label><input type="number" id="f-floor" value="0" min="0"></div>
+              <div class="fg"><label>קיבולת</label><input type="number" id="f-cap" value="4" min="1"></div>
+            </div>
+            <div class="fg"><label>הערות</label><textarea id="f-notes" placeholder="הדלת פתוחה, הממ&quot;ד מימין..."></textarea></div>
+            <div class="fg"><label class="fg-check"><input type="checkbox" id="f-access"> נגיש לנכים ועגלות</label></div>
+            <button class="btn-full btn-green" onclick="doRegister()">הירשם</button>
+          </div>
+
+          <div class="err-msg" id="err"></div>
+          <div style="margin-top:16px;text-align:center;"><a href="#" onclick="skipLogin()" style="color:var(--muted);font-size:13px;text-decoration:none;">המשך בלי הרשמה (חיפוש בלבד)</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASK: at home or outside? (when no GPS) -->
+    <div id="v-ask" class="hidden">
+      <div class="ask-screen">
+        <div class="ask-icon">📍</div>
+        <h2>איפה אתה עכשיו?</h2>
+        <p>לא הצלחנו לזהות את המיקום שלך.<br>ספר לנו איפה אתה כדי שנוכל לעזור.</p>
+        <div class="ask-btns">
+          <button class="ask-btn home" onclick="setMode('host')">🏠 אני בבית — אפתח את הממ"ד</button>
+          <button class="ask-btn seek" onclick="setMode('seeker')">🏃 אני בחוץ — חפש לי ממ"ד</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALM HOME (no alert, seeker) -->
+    <div id="v-calm" class="hidden">
+      <div class="map-wrap" style="height:30vh;min-height:180px;"><div id="calm-map" style="width:100%;height:100%;"></div></div>
+      <div class="calm">
+        <div class="calm-i"><img src="/icons/logo.svg" alt="" style="width:40px;height:40px;"></div>
+        <h2>הכל רגוע</h2>
+        <p>אין אזעקות באזור שלך כרגע.<br>כשתהיה אזעקה, נמצא לך ממ"ד פתוח בקרבת מקום.</p>
+        <div class="sbadge"><span>●</span> אין התרעות פעילות</div>
+        <div class="icard" id="calm-info"></div>
+      </div>
+    </div>
+
+    <!-- SEEKER MODE (alert active or map view) -->
+    <div id="v-seek" class="hidden">
+      <div class="map-wrap" style="height:45vh;min-height:220px;"><div id="smap" style="width:100%;height:100%;"></div></div>
+      <div class="slist-header"><h3>ממ"דים באזור</h3><div class="cnt" id="cnt">0</div></div>
+      <div id="slist"></div>
+    </div>
+
+    <!-- HOST MODE -->
+    <div id="v-host" class="hidden">
+      <!-- Alert action (only during alert) -->
+      <div id="host-alert-box" class="hidden">
+        <div class="host-alert">
+          <h3 id="ha-title">🚨 אזעקה!</h3>
+          <p id="ha-sub">האם הממ"ד שלך פתוח?</p>
+          <div class="ha-btns">
+            <button class="ha-open" onclick="doActivate()">🛡️ הממ"ד פתוח!</button>
+            <button class="ha-skip" onclick="doDismiss()">לא זמין</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active banner -->
+      <div id="active-banner" class="hidden">
+        <div class="active-banner">
+          <div class="ab-icon">✅</div>
+          <h4>הממ"ד שלך מופיע על המפה</h4>
+          <p>שכנים באזור יכולים לראות שהממ"ד פתוח ולהגיע</p>
+          <div class="ab-stats">
+            <div class="ab-stat"><div class="v" style="color:#34d399;" id="s-onway">0</div><div class="l">בדרך</div></div>
+            <div class="ab-stat"><div class="v" style="color:#60a5fa;" id="s-helped">0</div><div class="l">נעזרו</div></div>
+          </div>
+          <button class="btn btn-s" style="margin-top:12px;width:100%;color:#f87171;" onclick="doDeactivate()">סגור את הממ"ד</button>
+        </div>
+      </div>
+
+      <!-- My shelter info -->
+      <div class="host-card">
+        <div class="host-top">
+          <div class="host-icon">🛡️</div>
+          <div class="host-info">
+            <h3 id="h-addr">—</h3>
+            <p id="h-details">—</p>
+          </div>
+        </div>
+        <div class="host-grid">
+          <div class="host-stat"><div class="v" id="h-cap">—</div><div class="l">קיבולת</div></div>
+          <div class="host-stat"><div class="v" id="h-floor">—</div><div class="l">קומה</div></div>
+        </div>
+        <div class="toggle-row">
+          <div><div class="tl">פתוח תמיד באזעקה</div><div class="td">ייפתח אוטומטית</div></div>
+          <div class="tsw" id="tsw" onclick="doToggleAlways()"><div class="tk"></div></div>
+        </div>
+      </div>
+
+      <div class="host-grid" style="padding:0 16px;margin-bottom:16px;">
+        <div class="host-stat"><div class="v" style="color:#34d399;" id="h-acts">0</div><div class="l">פעמים נפתח</div></div>
+        <div class="host-stat"><div class="v" style="color:#60a5fa;" id="h-total">0</div><div class="l">אנשים נעזרו</div></div>
+      </div>
+
+      <div style="padding:0 16px 16px;"><button class="btn btn-s" style="width:100%;" onclick="doEditShelter()">📝 ערוך פרטי ממ"ד</button></div>
+      <div class="settings-link"><a href="#" onclick="doLogout()">🚪 התנתק</a></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bnav">
+    <div class="ni on" data-v="home" onclick="navTo('home')"><span style="font-size:18px">🏠</span><span>בית</span></div>
+    <div class="ni" data-v="map" onclick="navTo('map')"><span style="font-size:18px">🗺️</span><span>מפה</span></div>
+    <div class="ni" data-v="host" onclick="navTo('host')"><span style="font-size:18px">🛡️</span><span>הממ"ד שלי</span></div>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div id="edit-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;padding:24px;width:100%;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3>עריכת ממ"ד</h3>
+      <button onclick="closeEdit()" style="background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;">✕</button>
+    </div>
+    <div class="fg"><label>כתובת</label><input type="text" id="e-addr"></div>
+    <div class="fg-row">
+      <div class="fg"><label>קומה</label><input type="number" id="e-floor"></div>
+      <div class="fg"><label>קיבולת</label><input type="number" id="e-cap"></div>
+    </div>
+    <div class="fg"><label>הערות</label><textarea id="e-notes"></textarea></div>
+    <div class="fg"><label class="fg-check"><input type="checkbox" id="e-access"> נגיש</label></div>
+    <button class="btn-full btn-green" onclick="doSaveEdit()">שמור</button>
+  </div>
+</div>
+
+<script src="/vendor/leaflet/leaflet.js"></script>
+<script type="module">
+import{initPushManager,subscribeToPush,isPushSubscribed}from'/js/push-manager.js';
+
+// ── State ──
+let token=localStorage.getItem('magen_host_token');
+let host=null, uLat=null, uLng=null, mode=null; // 'host'|'seeker'
+let _map=null,_calmMap=null,_markers=[],_uMarker=null;
+let activeAlert=null,timerInt=null,shelters=[],shelterPoll=null;
+let alertDismissed=false,currentAlertId=null,regToken=null;
+
+// Expose globals
+Object.assign(window,{doSendOTP,doVerify,doRegister,skipLogin,setMode,navTo,
+  doActivate,doDeactivate,doDismiss,doToggleAlways,doEditShelter,closeEdit,doSaveEdit,doLogout});
+
+// ── Init ──
+(async()=>{
+  await getLoc();
+  if(!uLat){uLat=32.256;uLng=34.918;} // default Tel Mond
+  if(token){
+    await loadHost();
+  }
+  detectMode();
+  checkAlert();
+  setInterval(checkAlert,5000);
+})();
+
+// ── Location ──
+function getLoc(){
+  return new Promise(r=>{
+    if(!navigator.geolocation){r();return;}
+    navigator.geolocation.getCurrentPosition(
+      p=>{uLat=p.coords.latitude;uLng=p.coords.longitude;r();},
+      ()=>{r();},
+      {enableHighAccuracy:true,timeout:5000}
+    );
+    navigator.geolocation.watchPosition(p=>{uLat=p.coords.latitude;uLng=p.coords.longitude;if(_uMarker)_uMarker.setLatLng([uLat,uLng]);},{},{enableHighAccuracy:true});
+  });
+}
+
+// ── Detect mode based on GPS ──
+function detectMode(){
+  // No GPS + active alert — always ask (even if not logged in, offer to go home and open shelter)
+  if(!uLat && activeAlert){
+    showAsk();
+    return;
+  }
+
+  if(host && uLat && host.lat && host.lng){
+    // Logged in + GPS + home coords — auto-detect by distance
+    const dist=haversine(uLat,uLng,host.lat,host.lng);
+    mode=dist<150?'host':'seeker';
+  } else {
+    mode='seeker';
+  }
+
+  showCurrentMode();
+}
+
+function showAsk(){
+  hideAll();show('v-ask');
+}
+
+function setMode(m){
+  mode=m;
+  if(m==='host' && (!token || !host)){
+    // Need to login first to open shelter
+    showLogin();
+    return;
+  }
+  showCurrentMode();
+}
+
+function showCurrentMode(){
+  if(mode==='host'&&host){showHostView();}
+  else if(activeAlert){showSeekView();}
+  else{showCalmView();}
+}
+
+// ── Views ──
+function hideAll(){['v-login','v-ask','v-calm','v-seek','v-host'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));}
+function show(id){document.getElementById(id)?.classList.remove('hidden');}
+
+function showLogin(){hideAll();show('v-login');}
+
+function showCalmView(){
+  hideAll();show('v-calm');
+  if(!_calmMap&&uLat)initCalmMap();
+  loadCalmInfo();
+  loadCalmShelters();
+  highlightNav('home');
+}
+
+function showSeekView(){
+  hideAll();show('v-seek');
+  initSeekerMap();
+  loadShelters();
+  if(shelterPoll)clearInterval(shelterPoll);
+  shelterPoll=setInterval(loadShelters,5000);
+  highlightNav('map');
+}
+
+function showHostView(){
+  hideAll();show('v-host');
+  renderHostData();
+  highlightNav('host');
+  if(shelterPoll){clearInterval(shelterPoll);shelterPoll=null;}
+}
+
+function highlightNav(name){
+  document.querySelectorAll('.ni').forEach(el=>{
+    el.classList.toggle('on',el.dataset.v===name);
+  });
+}
+
+function navTo(v){
+  if(v==='host'){
+    if(!token||!host){showLogin();return;}
+    setMode('host');
+  } else if(v==='map'){
+    mode='seeker';
+    showSeekView();
+  } else {
+    detectMode();
+  }
+}
+
+// ── Auth ──
+async function doSendOTP(){
+  const phone=document.getElementById('f-phone').value.trim();
+  if(!phone){showErr('הזן מספר טלפון');return;}
+  try{
+    const d=await api('POST','/api/auth/send-otp',{phone});
+    if(d.error){showErr(d.error);return;}
+    document.getElementById('step1').classList.add('hidden');
+    document.getElementById('step2').classList.remove('hidden');
+    if(d.dryRun&&d.code)document.getElementById('otp-hint').textContent=`קוד: ${d.code}`;
+  }catch{showErr('שגיאה');}
+}
+
+async function doVerify(){
+  const phone=document.getElementById('f-phone').value.trim();
+  const code=document.getElementById('f-code').value.trim();
+  if(!code){showErr('הזן קוד');return;}
+  try{
+    const d=await api('POST','/api/auth/verify-otp',{phone,code});
+    if(d.error){showErr(d.error);return;}
+    if(d.needsRegistration){
+      regToken=d.regToken;
+      document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step3').classList.remove('hidden');
+      showErr('');return;
+    }
+    token=d.token;host=d.host;
+    localStorage.setItem('magen_host_token',token);
+    initPushManager();subscribeToPush(token).catch(()=>{});
+    detectMode();
+  }catch{showErr('שגיאה');}
+}
+
+async function doRegister(){
+  const name=document.getElementById('f-name').value.trim();
+  const address=document.getElementById('f-addr').value.trim();
+  if(!name||!address){showErr('שם וכתובת חובה');return;}
+  try{
+    const d=await api('POST','/api/auth/register',{
+      regToken,name,address,
+      floor:parseInt(document.getElementById('f-floor').value)||0,
+      capacity:parseInt(document.getElementById('f-cap').value)||4,
+      notes:document.getElementById('f-notes').value.trim(),
+      accessibility:document.getElementById('f-access').checked,
+    });
+    if(d.error){showErr(d.error);return;}
+    token=d.token;host=d.host;
+    localStorage.setItem('magen_host_token',token);
+    initPushManager();subscribeToPush(token).catch(()=>{});
+    detectMode();
+  }catch{showErr('שגיאה');}
+}
+
+function skipLogin(){
+  mode='seeker';
+  if(uLat) showCalmView();
+  else{uLat=32.256;uLng=34.918;showCalmView();}
+}
+
+function showErr(m){document.getElementById('err').textContent=m;}
+
+function doLogout(){
+  localStorage.removeItem('magen_host_token');
+  token=null;host=null;mode=null;
+  showLogin();
+}
+
+// ── Host data ──
+async function loadHost(){
+  try{
+    const d=await api('GET','/api/shelters/mine');
+    if(d.error){token=null;host=null;return;}
+    host=d.host;
+  }catch{token=null;host=null;}
+}
+
+function renderHostData(){
+  if(!host)return;
+  document.getElementById('h-addr').textContent=host.address||'לא הוזנה כתובת';
+  document.getElementById('h-details').textContent=`קומה ${host.floor} · עד ${host.capacity} אנשים${host.accessibility?' · נגיש':''}`;
+  document.getElementById('h-cap').textContent=host.capacity;
+  document.getElementById('h-floor').textContent=host.floor;
+  const tsw=document.getElementById('tsw');
+  if(host.status==='always_open')tsw.classList.add('on');else tsw.classList.remove('on');
+
+  if(host.is_active){
+    show('active-banner');
+    loadSeekerStats();
+  } else {
+    document.getElementById('active-banner').classList.add('hidden');
+  }
+
+  // Stats
+  api('GET','/api/shelters/mine/stats').then(d=>{
+    document.getElementById('h-acts').textContent=d.activations||0;
+    document.getElementById('h-total').textContent=d.seekersHelped||0;
+  }).catch(()=>{});
+}
+
+async function loadSeekerStats(){
+  try{
+    const d=await api('GET','/api/shelters/mine/stats');
+    document.getElementById('s-onway').textContent=d.seekersOnWay||0;
+    document.getElementById('s-helped').textContent=d.seekersHelped||0;
+  }catch{}
+}
+
+async function doActivate(){
+  alertDismissed=true;
+  await api('POST','/api/shelters/mine/activate');
+  document.getElementById('host-alert-box').classList.add('hidden');
+  await loadHost();renderHostData();
+}
+async function doDeactivate(){
+  await api('POST','/api/shelters/mine/deactivate');
+  await loadHost();renderHostData();
+}
+function doDismiss(){alertDismissed=true;document.getElementById('host-alert-box').classList.add('hidden');}
+
+async function doToggleAlways(){
+  const ns=host.status==='always_open'?'manual':'always_open';
+  await api('PUT','/api/shelters/mine',{status:ns});
+  host.status=ns;
+  document.getElementById('tsw').classList.toggle('on');
+}
+
+function doEditShelter(){
+  document.getElementById('edit-modal').classList.remove('hidden');
+  document.getElementById('e-addr').value=host?.address||'';
+  document.getElementById('e-floor').value=host?.floor||0;
+  document.getElementById('e-cap').value=host?.capacity||4;
+  document.getElementById('e-notes').value=host?.notes||'';
+  document.getElementById('e-access').checked=!!host?.accessibility;
+}
+function closeEdit(){document.getElementById('edit-modal').classList.add('hidden');}
+async function doSaveEdit(){
+  await api('PUT','/api/shelters/mine',{
+    address:document.getElementById('e-addr').value,
+    floor:parseInt(document.getElementById('e-floor').value)||0,
+    capacity:parseInt(document.getElementById('e-cap').value)||4,
+    notes:document.getElementById('e-notes').value,
+    accessibility:document.getElementById('e-access').checked,
+  });
+  closeEdit();await loadHost();renderHostData();
+}
+
+// ── Alert ──
+async function checkAlert(){
+  try{
+    const d=await(await fetch('/api/alerts/active')).json();
+    if(d.alert&&!d.alert.ended_at){
+      if(!activeAlert||activeAlert._id!==d.alert._id){
+        activeAlert=d.alert;currentAlertId=d.alert._id;alertDismissed=false;
+        enterAlert();
+      }
+    } else if(activeAlert){
+      activeAlert=null;exitAlert();
+    }
+  }catch{}
+}
+
+function enterAlert(){
+  document.getElementById('abanner').classList.remove('off');
+  const p=document.getElementById('pill');p.classList.add('alert');p.textContent='אזעקה!';
+  document.getElementById('atitle').textContent=`אזעקה — ${activeAlert.cities||'תל מונד'}`;
+  document.getElementById('asub').textContent='היכנסו למרחב מוגן';
+  startTimer(activeAlert.time_to_shelter||90);
+
+  if(mode==='host'&&host){
+    // Show host alert action if not already active and not dismissed
+    if(!host.is_active&&!alertDismissed){
+      document.getElementById('ha-title').textContent=`🚨 אזעקה — ${activeAlert.cities}!`;
+      show('host-alert-box');
+    }
+  } else {
+    detectMode(); // may switch to seeker
+  }
+}
+
+function exitAlert(){
+  document.getElementById('abanner').classList.add('off');
+  const p=document.getElementById('pill');p.classList.remove('alert');p.textContent='תל מונד';
+  if(timerInt){clearInterval(timerInt);timerInt=null;}
+  document.getElementById('host-alert-box')?.classList.add('hidden');
+  if(token&&host) loadHost().then(()=>{renderHostData();detectMode();});
+  else detectMode();
+}
+
+function startTimer(sec){
+  if(timerInt)clearInterval(timerInt);let r=sec;
+  const t=()=>{const el=document.getElementById('atimer');el.textContent=r<=0?'⚠️':`${Math.floor(r/60)}:${String(r%60).padStart(2,'0')}`;if(r<=0)clearInterval(timerInt);r--;};
+  t();timerInt=setInterval(t,1000);
+}
+
+// ── Maps ──
+function createMap(elId,center,zoom){
+  const el=document.getElementById(elId);if(!el||!window.L)return null;
+  el.innerHTML='';
+  try{
+    const m=L.map(elId,{center,zoom,zoomControl:true});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM',maxZoom:18}).addTo(m);
+    setTimeout(()=>m&&m.invalidateSize(),100);
+    setTimeout(()=>m&&m.invalidateSize(),400);
+    setTimeout(()=>m&&m.invalidateSize(),1000);
+    return m;
+  }catch{return null;}
+}
+
+function initCalmMap(){
+  if(_calmMap||!uLat)return;
+  _calmMap=createMap('calm-map',[uLat,uLng],14);
+  if(_calmMap)L.circleMarker([uLat,uLng],{radius:6,fillColor:'#3b82f6',color:'rgba(59,130,246,.4)',weight:3,fillOpacity:1}).addTo(_calmMap);
+}
+
+function initSeekerMap(){
+  if(!_map){
+    _map=createMap('smap',[uLat||32.256,uLng||34.918],16);
+    if(_map&&uLat)_uMarker=L.circleMarker([uLat,uLng],{radius:7,fillColor:'#3b82f6',color:'rgba(59,130,246,.4)',weight:4,fillOpacity:1}).addTo(_map);
+  }else{
+    setTimeout(()=>_map&&_map.invalidateSize(),100);
+  }
+}
+
+// ── Shelters ──
+async function loadShelters(){
+  const lat=uLat||32.256,lng=uLng||34.918;
+  try{
+    const d=await(await fetch(`/api/shelters/nearby?lat=${lat}&lng=${lng}&radius=2000`)).json();
+    shelters=d.shelters||[];
+    document.getElementById('cnt').textContent=shelters.length;
+    renderShelterList();renderMarkers();
+  }catch{}
+}
+
+function renderShelterList(){
+  const c=document.getElementById('slist');
+  if(!shelters.length){c.innerHTML='<div class="empty"><div style="font-size:36px;margin-bottom:10px">🏘️</div><p>אין ממ"דים רשומים בקרבת מקום</p></div>';return;}
+
+  const isAlert=!!activeAlert;
+  const openCount=shelters.filter(s=>s.is_active).length;
+  document.getElementById('cnt').textContent=isAlert?`${openCount} פתוחים`:shelters.length;
+
+  c.innerHTML=shelters.map((s,i)=>{
+    const isOpen=!!s.is_active;
+    const isFirst=i===0&&isOpen;
+
+    // Status badge
+    const statusBadge=isOpen
+      ?'<span style="background:rgba(34,197,94,.15);color:#34d399;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">פתוח</span>'
+      :(s.status==='always_open'
+        ?'<span style="background:rgba(59,130,246,.1);color:#60a5fa;padding:2px 8px;border-radius:8px;font-size:11px;">נפתח באזעקה</span>'
+        :'<span style="background:rgba(107,114,128,.1);color:#9ca3af;padding:2px 8px;border-radius:8px;font-size:11px;">רשום</span>');
+
+    const avStyle=isOpen
+      ?'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;'
+      :'background:#374151;color:#9ca3af;';
+
+    // Show name+phone only during alert when shelter is open. Otherwise just address.
+    const showDetails=isAlert&&isOpen;
+    const displayName=showDetails?esc(s.name):'ממ"ד';
+    const displayAddr=`${esc(s.address)}, ${esc(s.city)}`;
+
+    return `<div class="sc ${isFirst?'near':''}" style="${!isOpen&&isAlert?'opacity:0.5;':''}">
+      <div class="sc-top">
+        <div class="sc-host">
+          <div class="sc-av" style="${avStyle}">${showDetails?(s.name||'?')[0]:'🛡️'}</div>
+          <div style="min-width:0">
+            <div class="sc-name">${displayName} ${statusBadge}</div>
+            <div class="sc-addr">${displayAddr}</div>
+          </div>
+        </div>
+        <div class="sc-dist">
+          <div class="dval" style="${isOpen?'':'color:var(--muted);'}">${s.distance<1000?Math.round(s.distance):(s.distance/1000).toFixed(1)}</div>
+          <div class="dunit">${s.distance<1000?'מטר':'ק"מ'}</div>
+          <div class="dwalk">~${s.walkMinutes} דק׳</div>
+        </div>
+      </div>
+      <div class="sc-dets"><span>🏢 קומה ${s.floor}</span><span>👥 עד ${s.capacity}</span>${s.accessibility?'<span>♿ נגיש</span>':''}</div>
+      ${showDetails&&s.notes?`<div class="sc-note"><span>💡</span>${esc(s.notes)}</div>`:''}
+      <div class="btns">
+        <button class="btn ${isOpen?'btn-g':'btn-s'}" onclick="window.open('https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}&travelmode=walking','_blank')">🗺️ נווט</button>
+        ${showDetails?`<button class="btn btn-b" onclick="location.href='tel:${esc(s.phone)}'">📞 חייג</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMarkers(){
+  if(!_map)return;
+  _markers.forEach(m=>_map.removeLayer(m));_markers=[];
+  const bounds=L.latLngBounds(uLat?[[uLat,uLng]]:[]);
+  const isAlert=!!activeAlert;
+  for(const s of shelters){
+    if(!s.lat||!s.lng)continue;
+    const isOpen=!!s.is_active;
+    const showDetails=isAlert&&isOpen;
+    const color=isOpen?'#22c55e':'#6b7280';
+    const m=L.circleMarker([s.lat,s.lng],{
+      radius:isOpen?10:7,fillColor:color,color:color,weight:2,fillOpacity:isOpen?.7:.35
+    }).addTo(_map);
+    // Show name+phone only during alert for open shelters
+    const popup=showDetails
+      ?`<div dir="rtl" style="font-family:Heebo,sans-serif"><strong>${esc(s.name)}</strong> 🟢<br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor}</small><br><a href="tel:${s.phone}">📞 ${s.phone}</a></div>`
+      :`<div dir="rtl" style="font-family:Heebo,sans-serif">ממ"ד ${isOpen?'🟢 פתוח':'⚪ רשום'}<br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor}</small></div>`;
+    m.bindPopup(popup);
+    _markers.push(m);bounds.extend([s.lat,s.lng]);
+  }
+  if(bounds.isValid())_map.fitBounds(bounds,{padding:[30,30],maxZoom:16});
+}
+
+let _calmMarkers=[];
+async function loadCalmShelters(){
+  const lat=uLat||32.256,lng=uLng||34.918;
+  try{
+    const d=await(await fetch(`/api/shelters/nearby?lat=${lat}&lng=${lng}&radius=3000`)).json();
+    if(!_calmMap)return;
+    _calmMarkers.forEach(m=>_calmMap.removeLayer(m));_calmMarkers=[];
+    for(const s of(d.shelters||[])){
+      if(!s.lat||!s.lng)continue;
+      const isOpen=!!s.is_active;
+      const color=isOpen?'#22c55e':'#6b7280';
+      const m=L.circleMarker([s.lat,s.lng],{radius:isOpen?8:5,fillColor:color,color:color,weight:1.5,fillOpacity:isOpen?.6:.3}).addTo(_calmMap);
+      m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif">ממ"ד<br>${esc(s.address)}<br><small>קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
+      _calmMarkers.push(m);
+    }
+  }catch{}
+}
+
+async function loadCalmInfo(){
+  try{
+    const s=await(await fetch('/api/admin/stats')).json();
+    document.getElementById('calm-info').innerHTML=`
+      <div class="irow"><div class="iico">🏘️</div><div class="itxt"><strong>${s.totalHosts||0} ממ"דים</strong> רשומים</div></div>
+      <div class="irow"><div class="iico">👥</div><div class="itxt"><strong>${s.activeHosts||0}</strong> פעילים כרגע</div></div>`;
+  }catch{}
+}
+
+// ── Helpers ──
+async function api(method,url,body){
+  const opts={method,headers:{}};
+  if(token)opts.headers['Authorization']=`Bearer ${token}`;
+  if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body);}
+  return(await fetch(url,opts)).json();
+}
+
+function haversine(lat1,lng1,lat2,lng2){
+  const R=6371000,dLat=(lat2-lat1)*Math.PI/180,dLng=(lng2-lng1)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+</script>
+</body>
+</html>
