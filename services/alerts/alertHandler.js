@@ -190,6 +190,45 @@ export function registerAlertRoutes(app) {
     };
   });
 
+  // ─── Live API connectivity test ───
+  app.get('/api/alerts/test-connection', async () => {
+    const url = 'https://www.oref.org.il/WarningMessages/alert/alerts.json';
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const start = Date.now();
+      const res = await fetch(url, {
+        headers: { 'Referer': 'https://www.oref.org.il/', 'X-Requested-With': 'XMLHttpRequest' },
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      const text = await res.text();
+      const ms = Date.now() - start;
+      const cleaned = text.replace(/^\uFEFF/, '').trim();
+      const isEmpty = !cleaned || cleaned === '' || cleaned === '[]';
+      const hasAlerts = !isEmpty && cleaned.startsWith('[');
+
+      let alerts = null;
+      if (hasAlerts) {
+        try { alerts = JSON.parse(cleaned); } catch { alerts = 'parse_error'; }
+      }
+
+      return {
+        connected: true,
+        httpStatus: res.status,
+        responseTimeMs: ms,
+        isEmpty,
+        hasAlerts,
+        alertCount: Array.isArray(alerts) ? alerts.length : 0,
+        alerts: Array.isArray(alerts) ? alerts.slice(0, 5) : null,
+        monitoredCities: config.alerts.monitoredCities,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (err) {
+      return { connected: false, error: err.message, timestamp: new Date().toISOString() };
+    }
+  });
+
   // ─── City management (multi-city) ───
   app.get('/api/alerts/cities', async () => {
     const dbCities = db.prepare('SELECT * FROM cities WHERE is_active = 1 ORDER BY name').all();

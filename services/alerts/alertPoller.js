@@ -7,7 +7,6 @@ import { handleNewAlert } from './alertHandler.js';
 // Primary endpoint (current), fallback to legacy
 const PIKUD_HAOREF_URLS = [
   'https://www.oref.org.il/WarningMessages/alert/alerts.json',
-  'https://www.oref.org.il/warningMessages/alert/Ede/1/alerts.json',
 ];
 
 let pollTimer = null;

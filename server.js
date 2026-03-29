@@ -116,6 +116,10 @@ app.post('/api/geocode', async (request) => {
 });
 
 // ─── Serve app pages ──
+app.get('/landing', async (request, reply) => {
+  return reply.sendFile('landing.html');
+});
+
 app.get('/app', async (request, reply) => {
   return reply.sendFile('app.html');
 });

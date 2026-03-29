@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="description" content="שכן מגן - מצא ממ״ד פתוח בקרבתך בזמן אזעקה. כמו פנגו לחניה, אבל לממ״דים פרטיים.">
+  <meta property="og:title" content="שכן מגן — ממ״ד פתוח בלחיצה">
+  <meta property="og:description" content="שיתוף ממ״דים פרטיים בזמן חירום. מצא מקלט קרוב תוך שניות.">
+  <meta property="og:image" content="/icons/logo.svg">
+  <title>שכן מגן — ממ״ד פתוח בלחיצה</title>
+  <link rel="icon" href="/icons/logo.svg">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box;}
+    :root{--bg:#0a0c10;--card:#12151e;--layer:#1a1e2e;--border:#252940;--text:#eeeef2;--muted:#8b8fa6;--green:#22c55e;--green-l:#34d399;--blue:#3b82f6;--red:#dc2626;--yellow:#fbbf24;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--text);direction:rtl;overflow-x:hidden;line-height:1.6;}
+
+    /* ── Navbar ── */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;transition:background .3s;}
+    .nav.scrolled{background:rgba(10,12,16,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);}
+    .nav-logo img{width:36px;height:36px;border-radius:10px;}
+    .nav-logo span{font-size:18px;font-weight:700;}
+    .nav-links{display:flex;align-items:center;gap:24px;}
+    .nav-links a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s;}
+    .nav-links a:hover{color:var(--text);}
+    .nav-cta{background:var(--green);color:#fff;padding:8px 20px;border-radius:10px;font-weight:600;font-size:14px;text-decoration:none;transition:transform .15s,box-shadow .2s;}
+    .nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(34,197,94,.3);}
+
+    /* ── Hero ── */
+    .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden;}
+    .hero::before{content:'';position:absolute;top:-50%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(34,197,94,.08) 0%,transparent 70%);pointer-events:none;}
+    .hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);padding:6px 16px;border-radius:20px;font-size:13px;color:var(--green-l);margin-bottom:24px;animation:fadeUp .6s ease-out;}
+    .hero-badge .dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite;}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+    .hero h1{font-size:clamp(36px,6vw,64px);font-weight:900;line-height:1.15;margin-bottom:20px;animation:fadeUp .6s ease-out .1s both;}
+    .hero h1 .accent{background:linear-gradient(135deg,var(--green),#34d399);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .hero-sub{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:580px;margin:0 auto 36px;line-height:1.7;animation:fadeUp .6s ease-out .2s both;}
+    .hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;animation:fadeUp .6s ease-out .3s both;}
+    .btn-main{background:linear-gradient(135deg,var(--green),#16a34a);color:#fff;padding:14px 32px;border-radius:14px;font-size:17px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:10px;transition:transform .15s,box-shadow .2s;font-family:'Heebo',sans-serif;border:none;cursor:pointer;}
+    .btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(34,197,94,.25);}
+    .btn-sec{background:var(--layer);border:1px solid var(--border);color:var(--text);padding:14px 32px;border-radius:14px;font-size:17px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:10px;transition:transform .15s,border-color .2s;font-family:'Heebo',sans-serif;cursor:pointer;}
+    .btn-sec:hover{transform:translateY(-2px);border-color:var(--green);}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── Stats bar ── */
+    .stats{display:flex;justify-content:center;gap:48px;padding:40px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--card);}
+    .stat{text-align:center;}
+    .stat-n{font-size:32px;font-weight:800;background:linear-gradient(135deg,var(--green),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .stat-l{font-size:13px;color:var(--muted);margin-top:2px;}
+
+    /* ── Section base ── */
+    .section{padding:80px 24px;max-width:1100px;margin:0 auto;}
+    .section-tag{display:inline-block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--green);margin-bottom:12px;}
+    .section-title{font-size:clamp(26px,4vw,40px);font-weight:800;margin-bottom:16px;}
+    .section-desc{color:var(--muted);font-size:16px;max-width:600px;line-height:1.7;margin-bottom:48px;}
+
+    /* ── How it works ── */
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px;}
+    .step{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px;position:relative;transition:border-color .2s,transform .2s;}
+    .step:hover{border-color:rgba(34,197,94,.3);transform:translateY(-4px);}
+    .step-num{position:absolute;top:16px;left:16px;width:32px;height:32px;background:linear-gradient(135deg,var(--green),#16a34a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;}
+    .step-icon{font-size:40px;margin-bottom:14px;}
+    .step h3{font-size:18px;font-weight:700;margin-bottom:8px;}
+    .step p{color:var(--muted);font-size:14px;line-height:1.6;}
+
+    /* ── Features ── */
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+    .feat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;display:flex;gap:16px;transition:border-color .2s,transform .2s;}
+    .feat:hover{border-color:rgba(34,197,94,.3);transform:translateY(-3px);}
+    .feat-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+    .feat-icon.g{background:rgba(34,197,94,.12);}
+    .feat-icon.b{background:rgba(59,130,246,.12);}
+    .feat-icon.r{background:rgba(220,38,38,.12);}
+    .feat-icon.y{background:rgba(251,191,36,.12);}
+    .feat h3{font-size:16px;font-weight:700;margin-bottom:4px;}
+    .feat p{color:var(--muted);font-size:13px;line-height:1.5;}
+
+    /* ── Roles ── */
+    .roles{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:48px;}
+    .role{background:var(--card);border:1px solid var(--border);border-radius:22px;padding:32px;text-align:center;transition:border-color .2s,transform .2s;}
+    .role:hover{transform:translateY(-4px);}
+    .role.seeker:hover{border-color:rgba(34,197,94,.4);}
+    .role.host:hover{border-color:rgba(59,130,246,.4);}
+    .role-icon{font-size:48px;margin-bottom:14px;}
+    .role h3{font-size:22px;font-weight:700;margin-bottom:8px;}
+    .role p{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:20px;}
+    .role ul{list-style:none;text-align:right;display:flex;flex-direction:column;gap:8px;}
+    .role li{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);}
+    .role li::before{content:'✓';color:var(--green);font-weight:700;font-size:13px;}
+
+    /* ── CTA ── */
+    .cta-section{text-align:center;padding:80px 24px;position:relative;}
+    .cta-section::before{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(circle,rgba(34,197,94,.06) 0%,transparent 70%);pointer-events:none;}
+    .cta-section h2{font-size:clamp(28px,4vw,42px);font-weight:800;margin-bottom:14px;}
+    .cta-section p{color:var(--muted);font-size:17px;margin-bottom:32px;}
+
+    /* ── Footer ── */
+    .footer{border-top:1px solid var(--border);padding:32px 24px;text-align:center;color:var(--muted);font-size:13px;}
+    .footer a{color:var(--green-l);text-decoration:none;}
+
+    /* ── Responsive ── */
+    @media(max-width:768px){
+      .nav-links a:not(.nav-cta){display:none;}
+      .stats{gap:24px;flex-wrap:wrap;}
+      .roles{grid-template-columns:1fr;}
+      .hero h1{font-size:32px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="nav" id="navbar">
+  <a href="/" class="nav-logo">
+    <img src="/icons/logo.svg" alt="שכן מגן">
+    <span>שכן מגן</span>
+  </a>
+  <div class="nav-links">
+    <a href="#how">איך זה עובד</a>
+    <a href="#features">יתרונות</a>
+    <a href="#roles">למי מתאים</a>
+    <a href="/app" class="nav-cta">כניסה לאפליקציה ←</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">
+    <span class="dot"></span>
+    פעיל עכשיו — תל מונד והסביבה
+  </div>
+  <h1>ממ״ד פתוח<br><span class="accent">בלחיצה אחת</span></h1>
+  <p class="hero-sub">כמו פנגו לחניה, אבל לממ״דים פרטיים.<br>מצא מקלט קרוב בזמן אזעקה, או שתף את הממ״ד שלך והציל חיים.</p>
+  <div class="hero-btns">
+    <a href="/app" class="btn-main">🛡️ מצא ממ״ד עכשיו</a>
+    <a href="/app#host" class="btn-sec">🏠 שתף את הממ״ד שלי</a>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats">
+  <div class="stat"><div class="stat-n">3 שניות</div><div class="stat-l">זמן זיהוי אזעקה</div></div>
+  <div class="stat"><div class="stat-n">24/7</div><div class="stat-l">ניטור פיקוד העורף</div></div>
+  <div class="stat"><div class="stat-n">0 ₪</div><div class="stat-l">חינם לגמרי</div></div>
+  <div class="stat"><div class="stat-n">0 התקנות</div><div class="stat-l">עובד מהדפדפן</div></div>
+</div>
+
+<!-- How it works -->
+<section class="section" id="how">
+  <span class="section-tag">איך זה עובד</span>
+  <h2 class="section-title">שלושה צעדים פשוטים</h2>
+  <p class="section-desc">לא צריך להוריד אפליקציה, לא צריך להירשם. פשוט פותחים ומוצאים מקלט.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-icon">📍</div>
+      <h3>פתח את המפה</h3>
+      <p>היכנס לאפליקציה מהדפדפן. המערכת מזהה את המיקום שלך אוטומטית ומציגה ממ״דים פתוחים בסביבה.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-icon">🗺️</div>
+      <h3>בחר ממ״ד קרוב</h3>
+      <p>ראה מרחק, קומה, נגישות ופרטים נוספים. לחץ על ניווט ו-Waze ייקח אותך ישירות.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-icon">🛡️</div>
+      <h3>הגע בבטחה</h3>
+      <p>הממ״ד פתוח ומחכה לך. בעל הממ״ד מקבל התראה ויודע שאתה בדרך.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section" id="features">
+  <span class="section-tag">למה שכן מגן</span>
+  <h2 class="section-title">הטכנולוגיה שמצילה חיים</h2>
+  <p class="section-desc">בנינו את המערכת שרצינו שתהיה כשהאזעקה צפצפה ולא ידענו לאן לרוץ.</p>
+  <div class="features">
+    <div class="feat">
+      <div class="feat-icon r">🚨</div>
+      <div>
+        <h3>זיהוי אזעקות בזמן אמת</h3>
+        <p>המערכת מתחברת ישירות ל-API של פיקוד העורף ומזהה אזעקות באזור שלך תוך 3 שניות.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon g">🔔</div>
+      <div>
+        <h3>התראות Push למארחים</h3>
+        <p>כשיש אזעקה באזור — המארח מקבל התראה מיידית לפתוח את הממ״ד לשכנים.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon b">📱</div>
+      <div>
+        <h3>ללא התקנה</h3>
+        <p>אפליקציית ווב שנפתחת ישירות מהדפדפן. לא צריך להוריד כלום מהחנות.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon y">🗺️</div>
+      <div>
+        <h3>מפה אינטראקטיבית</h3>
+        <p>מפת מקלטים חיה עם סימון צבעוני — ירוק פתוח, אפור סגור. ניווט בלחיצה.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon g">🔒</div>
+      <div>
+        <h3>פרטיות מלאה</h3>
+        <p>כתובת מדויקת מוסתרת. מחפשי מקלט רואים רק מיקום כללי ומספר טלפון ליצירת קשר.</p>
+      </div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon b">⚡</div>
+      <div>
+        <h3>קל ומהיר</h3>
+        <p>ממשק פשוט בעברית, מותאם למובייל. נבנה לעבוד גם ברשת חלשה.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Roles -->
+<section class="section" id="roles">
+  <span class="section-tag">למי מתאים</span>
+  <h2 class="section-title">שני צדדים, מטרה אחת</h2>
+  <p class="section-desc">בין אם אתה מחפש מקלט או רוצה לשתף — יש לך מקום כאן.</p>
+  <div class="roles">
+    <div class="role seeker">
+      <div class="role-icon">🏃</div>
+      <h3>מחפש מקלט</h3>
+      <p>אתה בחוץ, נשמעת אזעקה, ואין לך ממ״ד. פשוט פתח את האפליקציה.</p>
+      <ul>
+        <li>ללא הרשמה או התחברות</li>
+        <li>מפה עם ממ״דים פתוחים בסביבה</li>
+        <li>ניווט ישיר עם Waze</li>
+        <li>פרטי קשר של המארח</li>
+      </ul>
+    </div>
+    <div class="role host">
+      <div class="role-icon">🏠</div>
+      <h3>בעל ממ״ד</h3>
+      <p>יש לך ממ״ד ואתה מוכן לפתוח אותו לשכנים בזמן חירום? הצטרף.</p>
+      <ul>
+        <li>הרשמה פשוטה עם קוד SMS</li>
+        <li>שליטה מלאה — פתיחה וסגירה בלחיצה</li>
+        <li>התראות Push כשיש אזעקה באזור</li>
+        <li>הכתובת המדויקת מוגנת</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>האזעקה הבאה יכולה להיות<br><span style="color:var(--green)">ההזדמנות להציל חיים</span></h2>
+  <p>הצטרף לרשת שיתוף הממ״דים הראשונה בישראל</p>
+  <div class="hero-btns">
+    <a href="/app" class="btn-main">🛡️ כניסה לאפליקציה</a>
+    <a href="/app#host" class="btn-sec">🏠 רישום ממ״ד</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <p>שכן מגן © 2024 — פרויקט קהילתי לשיתוף ממ״דים בזמן חירום</p>
+  <p style="margin-top:6px;">נבנה באהבה 🇮🇱 | <a href="/app">לאפליקציה</a></p>
+</footer>
+
+<script>
+// Navbar scroll effect
+const nav = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+});
+
+// Smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>

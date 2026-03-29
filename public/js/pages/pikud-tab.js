@@ -2,11 +2,22 @@
 export function render(container) {
   container.innerHTML = `
     <div class="stat-grid" id="pk-stats"></div>
+
+    <!-- Live connection test -->
+    <div id="pk-connection" style="margin-bottom:20px;"></div>
+    <div style="margin-bottom:20px;">
+      <button id="btn-test-conn" style="padding:10px 20px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text);cursor:pointer;font-family:Heebo,sans-serif;font-size:14px;">
+        🔌 בדוק חיבור לפיקוד העורף
+      </button>
+    </div>
+
     <div id="pk-content" style="color:var(--text-muted);text-align:center;padding:40px;">טוען...</div>
   `;
 }
 
 export async function onActivate() {
+  document.getElementById('btn-test-conn')?.addEventListener('click', testConnection);
+  testConnection(); // auto-test on load
   try {
     const d = await (await fetch('/api/alerts/pikud-info')).json();
     const cities = d.monitoredCities || [];
@@ -94,6 +105,53 @@ export async function onActivate() {
     `;
   } catch (err) {
     document.getElementById('pk-content').innerHTML = `<p style="color:#f87171;">שגיאה בטעינה: ${err.message}</p>`;
+  }
+}
+
+async function testConnection() {
+  const box = document.getElementById('pk-connection');
+  if (!box) return;
+  box.innerHTML = '<div style="padding:16px;color:var(--text-muted);text-align:center;">בודק חיבור...</div>';
+
+  try {
+    const d = await (await fetch('/api/alerts/test-connection')).json();
+
+    if (d.connected) {
+      const statusColor = d.isEmpty ? '#34d399' : '#f87171';
+      const statusText = d.isEmpty ? 'מחובר — אין אזעקות (שקט)' : `מחובר — ${d.alertCount} אזעקות פעילות!`;
+      box.innerHTML = `
+        <div style="background:${d.isEmpty ? 'rgba(34,197,94,.08)' : 'rgba(220,38,38,.1)'};border:1px solid ${d.isEmpty ? 'rgba(34,197,94,.2)' : 'rgba(220,38,38,.2)'};border-radius:14px;padding:16px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:${statusColor};box-shadow:0 0 8px ${statusColor};"></div>
+            <div style="font-weight:600;color:${statusColor};">${statusText}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:13px;">
+            <div style="background:var(--bg-card);padding:8px;border-radius:8px;text-align:center;">
+              <div style="font-weight:700;">${d.httpStatus}</div><div style="color:var(--text-muted);font-size:11px;">HTTP Status</div>
+            </div>
+            <div style="background:var(--bg-card);padding:8px;border-radius:8px;text-align:center;">
+              <div style="font-weight:700;">${d.responseTimeMs}ms</div><div style="color:var(--text-muted);font-size:11px;">זמן תגובה</div>
+            </div>
+            <div style="background:var(--bg-card);padding:8px;border-radius:8px;text-align:center;">
+              <div style="font-weight:700;">${d.monitoredCities?.join(', ')}</div><div style="color:var(--text-muted);font-size:11px;">ערים מנוטרות</div>
+            </div>
+          </div>
+          ${d.hasAlerts && d.alerts ? `<div style="margin-top:12px;background:rgba(220,38,38,.1);border-radius:8px;padding:10px;font-size:13px;color:#f87171;">
+            <strong>אזעקות פעילות:</strong> ${d.alerts.map(a => esc(a.data || a.title)).join(', ')}
+          </div>` : ''}
+          <div style="margin-top:8px;font-size:11px;color:var(--text-muted);">נבדק: ${new Date(d.timestamp).toLocaleString('he-IL')}</div>
+        </div>`;
+    } else {
+      box.innerHTML = `
+        <div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:14px;padding:16px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:#ef4444;"></div>
+            <div style="font-weight:600;color:#f87171;">חיבור נכשל — ${esc(d.error)}</div>
+          </div>
+        </div>`;
+    }
+  } catch (err) {
+    box.innerHTML = `<div style="color:#f87171;padding:16px;">שגיאה: ${err.message}</div>`;
   }
 }
 
