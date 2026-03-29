@@ -725,16 +725,16 @@ function renderShelterList(){
     const isOpen=!!s.is_active;
     const isFirst=i===0&&isOpen;
 
-    // Status badge
+    // Status badge: green=open, yellow=closed
     const statusBadge=isOpen
-      ?'<span style="background:rgba(34,197,94,.15);color:#34d399;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">פתוח</span>'
+      ?'<span style="background:rgba(34,197,94,.15);color:#34d399;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600;">פתוח עכשיו</span>'
       :(s.status==='always_open'
-        ?'<span style="background:rgba(59,130,246,.1);color:#60a5fa;padding:2px 8px;border-radius:8px;font-size:11px;">נפתח באזעקה</span>'
-        :'<span style="background:rgba(107,114,128,.1);color:#9ca3af;padding:2px 8px;border-radius:8px;font-size:11px;">רשום</span>');
+        ?'<span style="background:rgba(253,230,138,.15);color:#d4a843;padding:2px 8px;border-radius:8px;font-size:11px;">נפתח באזעקה</span>'
+        :'<span style="background:rgba(253,230,138,.1);color:#d4a843;padding:2px 8px;border-radius:8px;font-size:11px;">רשום</span>');
 
     const avStyle=isOpen
       ?'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;'
-      :'background:#374151;color:#9ca3af;';
+      :'background:#44400a;color:#fde68a;';
 
     // Show name+phone only during alert when shelter is open. Otherwise just address.
     const showDetails=isAlert&&isOpen;
@@ -751,7 +751,7 @@ function renderShelterList(){
           </div>
         </div>
         <div class="sc-dist">
-          <div class="dval" style="${isOpen?'':'color:var(--muted);'}">${s.distance<1000?Math.round(s.distance):(s.distance/1000).toFixed(1)}</div>
+          <div class="dval" style="${isOpen?'':'color:#d4a843;'}">${s.distance<1000?Math.round(s.distance):(s.distance/1000).toFixed(1)}</div>
           <div class="dunit">${s.distance<1000?'מטר':'ק"מ'}</div>
           <div class="dwalk">~${s.walkMinutes} דק׳</div>
         </div>
@@ -770,20 +770,20 @@ function renderMarkers(){
   if(!_map)return;
   _markers.forEach(m=>_map.removeLayer(m));_markers=[];
   const bounds=L.latLngBounds(uLat?[[uLat,uLng]]:[]);
-  const isAlert=!!activeAlert;
   for(const s of shelters){
     if(!s.lat||!s.lng)continue;
     const isOpen=!!s.is_active;
-    const showDetails=isAlert&&isOpen;
-    const color=isOpen?'#22c55e':'#6b7280';
+    // Green = open, light yellow = closed/unknown
+    const fillColor=isOpen?'#22c55e':'#fde68a';
+    const strokeColor=isOpen?'#16a34a':'#d4a843';
     const m=L.circleMarker([s.lat,s.lng],{
-      radius:isOpen?10:7,fillColor:color,color:color,weight:2,fillOpacity:isOpen?.7:.35
+      radius:isOpen?11:7,
+      fillColor, color:strokeColor, weight:2,
+      fillOpacity:isOpen?.8:.5
     }).addTo(_map);
-    // Show name+phone only during alert for open shelters
-    const popup=showDetails
-      ?`<div dir="rtl" style="font-family:Heebo,sans-serif"><strong>${esc(s.name)}</strong> 🟢<br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor}</small><br><a href="tel:${s.phone}">📞 ${s.phone}</a></div>`
-      :`<div dir="rtl" style="font-family:Heebo,sans-serif">ממ"ד ${isOpen?'🟢 פתוח':'⚪ רשום'}<br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor}</small></div>`;
-    m.bindPopup(popup);
+    // Popup: only address + floor + capacity. NO name, NO phone. Privacy first.
+    const statusText=isOpen?'<span style="color:#22c55e;font-weight:600;">פתוח עכשיו</span>':'<span style="color:#d4a843;">ממ"ד רשום</span>';
+    m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif">${statusText}<br>${esc(s.address)}<br><small>${Math.round(s.distance)}מ׳ · קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
     _markers.push(m);bounds.extend([s.lat,s.lng]);
   }
   if(bounds.isValid())_map.fitBounds(bounds,{padding:[30,30],maxZoom:16});
@@ -799,9 +799,12 @@ async function loadCalmShelters(){
     for(const s of(d.shelters||[])){
       if(!s.lat||!s.lng)continue;
       const isOpen=!!s.is_active;
-      const color=isOpen?'#22c55e':'#6b7280';
-      const m=L.circleMarker([s.lat,s.lng],{radius:isOpen?8:5,fillColor:color,color:color,weight:1.5,fillOpacity:isOpen?.6:.3}).addTo(_calmMap);
-      m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif">ממ"ד<br>${esc(s.address)}<br><small>קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
+      const fillColor=isOpen?'#22c55e':'#fde68a';
+      const strokeColor=isOpen?'#16a34a':'#d4a843';
+      const m=L.circleMarker([s.lat,s.lng],{
+        radius:isOpen?8:5,fillColor,color:strokeColor,weight:1.5,fillOpacity:isOpen?.6:.4
+      }).addTo(_calmMap);
+      m.bindPopup(`<div dir="rtl" style="font-family:Heebo,sans-serif">${isOpen?'<span style="color:#22c55e;">פתוח</span>':'ממ"ד רשום'}<br>${esc(s.address)}<br><small>קומה ${s.floor} · ${s.capacity} אנשים</small></div>`);
       _calmMarkers.push(m);
     }
   }catch{}
