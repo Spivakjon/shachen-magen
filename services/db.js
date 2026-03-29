@@ -4,7 +4,9 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = join(__dirname, '..', 'data', 'magen-shachen.db');
+// Use persistent volume on Railway (/persist), fallback to local data/
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || join(__dirname, '..', 'data');
+const DB_PATH = join(DATA_DIR, 'shachen-magen.db');
 
 const db = Database(DB_PATH, { verbose: null });
 db.pragma('journal_mode = WAL');
