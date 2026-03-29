@@ -125,6 +125,19 @@ export function registerShelterRoutes(app) {
 
     if (fields.length === 0) return { error: 'אין שדות לעדכון' };
 
+    // Auto-geocode if address changed and no explicit lat/lng
+    if (address !== undefined && lat === undefined) {
+      try {
+        const { geocodeAddress } = await import('../geocoding.js');
+        const host = db.prepare('SELECT city FROM hosts WHERE _id = ?').get(hostId);
+        const geo = await geocodeAddress(address, city || host?.city || 'תל מונד');
+        if (geo) {
+          fields.push('lat = ?'); values.push(geo.lat);
+          fields.push('lng = ?'); values.push(geo.lng);
+        }
+      } catch { /* geocoding optional */ }
+    }
+
     fields.push("updated_at = strftime('%Y-%m-%dT%H:%M:%SZ','now')");
     values.push(hostId);
 

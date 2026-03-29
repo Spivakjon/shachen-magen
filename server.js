@@ -93,9 +93,26 @@ registerAlertRoutes(app);
 // ─── Push routes ──
 registerPushRoutes(app);
 
-// ─── Public config (maps key) ──
+// ─── Public config ──
 app.get('/api/config', async () => {
   return { googleMapsKey: config.googleMapsKey };
+});
+
+// ─── Geocoding + street autocomplete ──
+import { geocodeAddress, searchStreets } from './services/geocoding.js';
+
+app.get('/api/streets/search', async (request) => {
+  const { q, city } = request.query;
+  if (!q || q.length < 2) return { streets: [] };
+  const streets = await searchStreets(q, city || 'תל מונד');
+  return { streets };
+});
+
+app.post('/api/geocode', async (request) => {
+  const { address, city } = request.body || {};
+  if (!address) return { error: 'address required' };
+  const result = await geocodeAddress(address, city || 'תל מונד');
+  return result || { error: 'not found' };
 });
 
 // ─── Serve app pages ──

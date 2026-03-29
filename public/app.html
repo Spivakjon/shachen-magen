@@ -220,7 +220,14 @@
           <div id="step3" class="hidden">
             <div style="text-align:center;margin-bottom:16px;"><span style="color:#34d399;font-weight:600;">הטלפון אומת!</span><br><span style="color:var(--muted);font-size:13px;">מלא את פרטי הממ"ד שלך</span></div>
             <div class="fg"><label>שם מלא *</label><input type="text" id="f-name" placeholder="ישראל ישראלי"></div>
-            <div class="fg"><label>כתובת הממ"ד *</label><input type="text" id="f-addr" placeholder="הזית 14, תל מונד"></div>
+            <div class="fg" style="position:relative;">
+              <label>כתובת הממ"ד *</label>
+              <input type="text" id="f-addr" placeholder="התחל להקליד שם רחוב..." autocomplete="off">
+              <div id="addr-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;z-index:100;"></div>
+              <input type="hidden" id="f-lat">
+              <input type="hidden" id="f-lng">
+              <input type="hidden" id="f-city" value="תל מונד">
+            </div>
             <div class="fg-row">
               <div class="fg"><label>קומה</label><input type="number" id="f-floor" value="0" min="0"></div>
               <div class="fg"><label>קיבולת</label><input type="number" id="f-cap" value="4" min="1"></div>
@@ -340,7 +347,11 @@
       <h3>עריכת ממ"ד</h3>
       <button onclick="closeEdit()" style="background:none;border:none;color:var(--text);font-size:22px;cursor:pointer;">✕</button>
     </div>
-    <div class="fg"><label>כתובת</label><input type="text" id="e-addr"></div>
+    <div class="fg" style="position:relative;">
+      <label>כתובת</label>
+      <input type="text" id="e-addr" autocomplete="off">
+      <div id="edit-addr-suggestions" style="display:none;position:absolute;top:100%;right:0;left:0;background:var(--card);border:1px solid var(--border);border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;z-index:100;"></div>
+    </div>
     <div class="fg-row">
       <div class="fg"><label>קומה</label><input type="number" id="e-floor"></div>
       <div class="fg"><label>קיבולת</label><input type="number" id="e-cap"></div>
@@ -516,9 +527,12 @@ async function doRegister(){
   const name=document.getElementById('f-name').value.trim();
   const address=document.getElementById('f-addr').value.trim();
   if(!name||!address){showErr('שם וכתובת חובה');return;}
+  const lat=parseFloat(document.getElementById('f-lat').value)||undefined;
+  const lng=parseFloat(document.getElementById('f-lng').value)||undefined;
+  const city=document.getElementById('f-city').value||'תל מונד';
   try{
     const d=await api('POST','/api/auth/register',{
-      regToken,name,address,
+      regToken,name,address,city,lat,lng,
       floor:parseInt(document.getElementById('f-floor').value)||0,
       capacity:parseInt(document.getElementById('f-cap').value)||4,
       notes:document.getElementById('f-notes').value.trim(),
@@ -818,6 +832,52 @@ function haversine(lat1,lng1,lat2,lng2){
 }
 
 function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+
+// ── Street Autocomplete ──
+function setupAutocomplete(inputId,suggestionsId,latId,lngId,cityId){
+  const input=document.getElementById(inputId);
+  const box=document.getElementById(suggestionsId);
+  if(!input||!box)return;
+
+  let timer=null;
+  input.addEventListener('input',()=>{
+    clearTimeout(timer);
+    const q=input.value.trim();
+    if(q.length<2){box.style.display='none';return;}
+    timer=setTimeout(async()=>{
+      try{
+        const city=cityId?document.getElementById(cityId)?.value:'תל מונד';
+        const d=await(await fetch(`/api/streets/search?q=${encodeURIComponent(q)}&city=${encodeURIComponent(city||'תל מונד')}`)).json();
+        if(!d.streets?.length){box.style.display='none';return;}
+        box.innerHTML=d.streets.map(s=>`
+          <div style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-size:14px;transition:background .15s;"
+               onmouseover="this.style.background='var(--layer)'" onmouseout="this.style.background=''"
+               onclick="pickStreet('${inputId}','${suggestionsId}','${latId||''}','${lngId||''}','${esc(s.full)}',${s.lat},${s.lng})">
+            <div style="font-weight:500;">${esc(s.street)}</div>
+            <div style="font-size:12px;color:var(--muted);">${esc(s.city)}</div>
+          </div>
+        `).join('');
+        box.style.display='block';
+      }catch{box.style.display='none';}
+    },300);
+  });
+
+  // Close on outside click
+  document.addEventListener('click',e=>{if(!input.contains(e.target)&&!box.contains(e.target))box.style.display='none';});
+}
+
+window.pickStreet=function(inputId,suggestionsId,latId,lngId,full,lat,lng){
+  document.getElementById(inputId).value=full;
+  document.getElementById(suggestionsId).style.display='none';
+  if(latId&&document.getElementById(latId))document.getElementById(latId).value=lat;
+  if(lngId&&document.getElementById(lngId))document.getElementById(lngId).value=lng;
+};
+
+// Init autocomplete on both forms
+setTimeout(()=>{
+  setupAutocomplete('f-addr','addr-suggestions','f-lat','f-lng','f-city');
+  setupAutocomplete('e-addr','edit-addr-suggestions','','');
+},500);
 </script>
 </body>
 </html>

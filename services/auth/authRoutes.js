@@ -94,7 +94,7 @@ export function registerAuthRoutes(app) {
 
   // ─── Register new host (step 3 — after OTP verified) ───
   app.post('/api/auth/register', async (request, reply) => {
-    const { regToken, name, address, floor, capacity, notes, accessibility } = request.body || {};
+    const { regToken, name, address, city, floor, capacity, notes, accessibility, lat, lng } = request.body || {};
 
     if (!regToken) return reply.code(400).send({ error: 'טוקן רישום נדרש' });
     if (!name || !address) return reply.code(400).send({ error: 'שם וכתובת הם שדות חובה' });
@@ -119,22 +119,36 @@ export function registerAuthRoutes(app) {
       return reply.code(400).send({ error: 'מספר כבר רשום' });
     }
 
+    // Auto-geocode if lat/lng not provided
+    let finalLat = lat || null;
+    let finalLng = lng || null;
+    if (!finalLat && address) {
+      try {
+        const { geocodeAddress } = await import('../geocoding.js');
+        const geo = await geocodeAddress(address, city || 'תל מונד');
+        if (geo) { finalLat = geo.lat; finalLng = geo.lng; }
+      } catch { /* geocoding optional */ }
+    }
+
     // Create host with all details
     db.prepare(`
-      INSERT INTO hosts (phone, name, address, floor, capacity, notes, accessibility, verified_phone)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      INSERT INTO hosts (phone, name, address, city, floor, capacity, notes, accessibility, lat, lng, verified_phone)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
     `).run(
       phone,
       name,
       address,
+      city || 'תל מונד',
       parseInt(floor) || 0,
       parseInt(capacity) || 4,
       notes || '',
-      accessibility ? 1 : 0
+      accessibility ? 1 : 0,
+      finalLat,
+      finalLng
     );
 
     const host = db.prepare('SELECT * FROM hosts WHERE phone = ?').get(phone);
-    logger.info({ phone, name, address }, 'New host registered with full details');
+    logger.info({ phone, name, address, lat: finalLat, lng: finalLng }, 'New host registered');
 
     // Generate login token
     const token = jwt.sign(
