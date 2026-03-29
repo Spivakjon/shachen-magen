@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import db from '../db.js';
 import { config } from '../../core/config.js';
 import { logger } from '../../core/logger.js';
+import { sendSMS } from '../sms.js';
 
 const JWT_SECRET = config.admin.secret || 'magen-shachen-secret';
 const OTP_EXPIRY_MINUTES = 5;
@@ -38,8 +39,14 @@ export function registerAuthRoutes(app) {
       return { success: true, dryRun: true, code }; // Return code in dev mode
     }
 
-    // TODO: Integrate with SMS provider (Twilio / SMS4Free)
-    logger.info({ phone: normalized }, 'OTP sent via SMS');
+    // Send SMS
+    const smsResult = await sendSMS(normalized, `שכן מגן — קוד אימות: ${code}`);
+    if (!smsResult.success) {
+      logger.error({ phone: normalized, error: smsResult.error }, 'SMS send failed');
+      return reply.code(500).send({ error: 'שגיאה בשליחת SMS, נסה שוב' });
+    }
+
+    logger.info({ phone: normalized, provider: smsResult.provider }, 'OTP sent via SMS');
     return { success: true };
   });
 
