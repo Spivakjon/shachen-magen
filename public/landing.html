@@ -273,7 +273,43 @@
   <p style="margin-top:6px;">נבנה באהבה 🇮🇱 | <a href="/app">לאפליקציה</a></p>
 </footer>
 
+<div id="gate" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+  <img src="/icons/logo.svg" alt="שכן מגן" style="width:64px;height:64px;border-radius:16px;margin-bottom:8px;">
+  <h2 style="font-size:22px;">הזן קוד כניסה</h2>
+  <input id="pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••"
+    style="width:160px;text-align:center;padding:14px;font-size:24px;letter-spacing:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;color:var(--text);font-family:'Heebo',sans-serif;outline:none;">
+  <p id="pin-err" style="color:#f87171;font-size:13px;min-height:20px;"></p>
+</div>
+
 <script>
+(function() {
+  const CODE = '2111';
+  const gate = document.getElementById('gate');
+  const pin = document.getElementById('pin');
+  const err = document.getElementById('pin-err');
+
+  if (sessionStorage.getItem('landing_ok') === '1') {
+    gate.remove();
+  } else {
+    document.body.style.overflow = 'hidden';
+    pin.focus();
+    pin.addEventListener('input', () => {
+      err.textContent = '';
+      if (pin.value.length === 4) {
+        if (pin.value === CODE) {
+          sessionStorage.setItem('landing_ok', '1');
+          gate.style.transition = 'opacity .3s';
+          gate.style.opacity = '0';
+          setTimeout(() => { gate.remove(); document.body.style.overflow = ''; }, 300);
+        } else {
+          err.textContent = 'קוד שגוי';
+          pin.value = '';
+        }
+      }
+    });
+  }
+})();
+
 // Navbar scroll effect
 const nav = document.getElementById('navbar');
 window.addEventListener('scroll', () => {
