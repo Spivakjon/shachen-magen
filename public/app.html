@@ -88,11 +88,11 @@
     .err-msg{color:#f87171;font-size:13px;margin-top:10px;text-align:center;}
     .hint{font-size:12px;color:var(--muted);margin-top:8px;text-align:center;}
 
-    /* Calm home */
-    .calm{padding:20px 16px;text-align:center;}
-    .calm-i{width:64px;height:64px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(59,130,246,.15));border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:16px auto 14px;}
-    .calm h2{font-size:22px;margin-bottom:6px;}
-    .calm p{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:16px;}
+    /* Calm home — fills available space, no scroll */
+    .calm-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:24px 16px;text-align:center;}
+    .calm-i{width:56px;height:56px;background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(59,130,246,.15));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:12px;}
+    .calm-wrap h2{font-size:21px;margin-bottom:6px;}
+    .calm-wrap p{color:var(--muted);font-size:13px;line-height:1.5;margin-bottom:14px;}
     .sbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);padding:8px 16px;border-radius:12px;font-size:14px;color:#34d399;margin-bottom:20px;}
     .icard{background:var(--layer);border-radius:14px;padding:14px;text-align:right;}
     .irow{display:flex;align-items:center;gap:10px;padding:6px 0;}
@@ -249,15 +249,14 @@
       </div>
     </div>
 
-    <!-- CALM HOME (no alert, seeker) -->
-    <div id="v-calm" class="hidden">
-      <div class="map-wrap" style="height:30vh;min-height:180px;"><div id="calm-map" style="width:100%;height:100%;"></div></div>
-      <div class="calm">
-        <div class="calm-i"><img src="/icons/logo.svg" alt="" style="width:40px;height:40px;"></div>
+    <!-- CALM HOME (no alert) — fills screen, no scroll -->
+    <div id="v-calm" class="hidden" style="display:flex;flex-direction:column;height:100%;">
+      <div class="calm-wrap" style="flex:1;">
+        <div class="calm-i"><img src="/icons/logo.svg" alt="" style="width:36px;height:36px;"></div>
         <h2>הכל רגוע</h2>
         <p>אין אזעקות באזור שלך כרגע.<br>כשתהיה אזעקה, נמצא לך ממ"ד פתוח בקרבת מקום.</p>
         <div class="sbadge"><span>●</span> אין התרעות פעילות</div>
-        <div class="icard" id="calm-info"></div>
+        <div class="icard" id="calm-info" style="width:100%;max-width:340px;"></div>
       </div>
     </div>
 
@@ -359,7 +358,7 @@ import{initPushManager,subscribeToPush,isPushSubscribed}from'/js/push-manager.js
 // ── State ──
 let token=localStorage.getItem('magen_host_token');
 let host=null, uLat=null, uLng=null, mode=null; // 'host'|'seeker'
-let _map=null,_calmMap=null,_markers=[],_uMarker=null;
+let _map=null,_markers=[],_uMarker=null;
 let activeAlert=null,timerInt=null,shelters=[],shelterPoll=null;
 let alertDismissed=false,currentAlertId=null,regToken=null;
 
@@ -438,10 +437,11 @@ function show(id){document.getElementById(id)?.classList.remove('hidden');}
 function showLogin(){hideAll();show('v-login');}
 
 function showCalmView(){
-  hideAll();show('v-calm');
-  if(!_calmMap&&uLat)initCalmMap();
+  hideAll();
+  const el=document.getElementById('v-calm');
+  el.classList.remove('hidden');
+  el.style.display='flex';
   loadCalmInfo();
-  loadCalmShelters();
   highlightNav('home');
 }
 
@@ -687,12 +687,6 @@ function createMap(elId,center,zoom){
   }catch{return null;}
 }
 
-function initCalmMap(){
-  if(_calmMap||!uLat)return;
-  _calmMap=createMap('calm-map',[uLat,uLng],14);
-  if(_calmMap)L.circleMarker([uLat,uLng],{radius:6,fillColor:'#3b82f6',color:'rgba(59,130,246,.4)',weight:3,fillOpacity:1}).addTo(_calmMap);
-}
-
 function initSeekerMap(){
   if(!_map){
     _map=createMap('smap',[uLat||32.256,uLng||34.918],16);
@@ -798,13 +792,6 @@ function renderMarkers(){
     _markers.push(m);bounds.extend([s.lat,s.lng]);
   }
   if(bounds.isValid())_map.fitBounds(bounds,{padding:[30,30],maxZoom:16});
-}
-
-let _calmMarkers=[];
-async function loadCalmShelters(){
-  // Calm map: don't show any markers (no shelters visible when no alert)
-  if(!_calmMap)return;
-  _calmMarkers.forEach(m=>_calmMap.removeLayer(m));_calmMarkers=[];
 }
 
 async function loadCalmInfo(){

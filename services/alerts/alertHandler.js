@@ -1,6 +1,7 @@
 // services/alerts/alertHandler.js — Process incoming alerts
 import db from '../db.js';
 import { logger } from '../../core/logger.js';
+import { config } from '../../core/config.js';
 import { sendPushToHosts } from '../push/pushService.js';
 
 // Alert type mapping from Pikud HaOref
