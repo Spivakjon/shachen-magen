@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>שכן מגן — דשבורד</title>
+  <link rel="stylesheet" href="/shared/css/dashboard-base.css">
+  <link rel="stylesheet" href="/shared/css/themes/cyan.css">
+  <link rel="stylesheet" href="/css/custom.css">
+</head>
+<body>
+  <div id="dashboard-root"></div>
+  <script type="module">
+    import { initDashboard } from '/shared/js/dashboard-core.js';
+    import { dashboardConfig } from '/js/dashboard-adapter.js';
+    initDashboard(dashboardConfig);
+  </script>
+</body>
+</html>
